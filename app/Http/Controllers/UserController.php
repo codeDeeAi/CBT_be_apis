@@ -5,21 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     // Create Users
-    public function createUser(Request $request)
+    public function create(Request $request)
     {
         // Validation
         $this->validate($request, [
-            'first_name' => 'required|string',
-            'last_name' => 'bail|required|string',
-            'gender' => 'bail|required|string|in:male,female',
-            'phone' => 'bail|required|string|unique:users,phone,except,id|min:11|max:11',
+            'name' => 'required|string',
             'email' => 'bail|required|email|unique:users,email,except,id',
-            'password' => 'bail|required|min:6',
-            'date_of_birth' => 'bail|required|date|date_format:m/d/Y',
+            'password' => 'bail|required|string|min:6'
         ]);
 
         // Create User
@@ -27,7 +24,9 @@ class UserController extends Controller
         try {
             // ** Create User
             User::create([
-
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password)
             ]);
 
             // Dispatch Email For New Accounts

@@ -44,12 +44,12 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get all of the tokens for the User
+     * Get all of the exams for the User
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function tokens()
+    public function exams()
     {
-        return $this->hasMany('App\Models\UserToken', 'user_id');
+        return $this->hasMany('App\Models\Exam', 'id');
     }
 }
