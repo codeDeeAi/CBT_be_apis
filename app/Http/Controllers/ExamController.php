@@ -16,7 +16,12 @@ class ExamController extends Controller
             'is_active' => 'nullable|boolean',
             'settings' => 'required|array',
             'settings' => 'required',
-            'settings.registration_status' => 'required|boolean'
+            'settings.registration_status' => 'required|boolean',
+            'settings.fixed' => 'required|array',
+            'settings.fixed.status' => 'required|boolean',
+            'settings.fixed.date' => 'required_if:settings.fixed.status,true|date',
+            'settings.duration' => 'required|integer',
+            'settings.attempts' => 'required|integer|min:1'
         ]);
 
         // Create new exam
@@ -31,5 +36,34 @@ class ExamController extends Controller
         return response()->json([
             'message' => 'Success !'
         ], 200);
+    }
+
+    // Show Exam to Examiner
+    public function index(Request $request, $exam_id)
+    {
+        if (Exam::where('id', $exam_id)->where('user_id', auth()->user()->id)->doesntExist()) {
+            return response()->json(['message' => 'Examination not found !'], 404);
+        }
+
+        return Exam::where('id', $exam_id)->with(['questions' => function ($query) {
+            $query->select(
+                "id",
+                "exam_id",
+                "question",
+                "options",
+                "answers",
+                "mark_manually",
+                "created_at"
+            );
+        }, 'participants' => function ($query) {
+            $query->select(
+                "id",
+                "exam_id",
+                "name",
+                "email",
+                "settings",
+                "created_at"
+            );
+        }])->select()->first();
     }
 }

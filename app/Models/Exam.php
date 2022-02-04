@@ -35,8 +35,10 @@ class Exam extends Model
      * @var array
      */
     protected $casts = [
-        'created_at' => 'datetime',
-        'settings' => 'array'
+        'created_at' => 'datetime:Y-m-d',
+        'updated_at' => 'datetime:Y-m-d',
+        'settings' => 'array',
+        'is_active' => 'boolean'
     ];
 
     /**
@@ -56,7 +58,7 @@ class Exam extends Model
      */
     public function questions()
     {
-        return $this->hasMany('App\Models\ExamQuestion', 'id');
+        return $this->hasMany('App\Models\ExamQuestion', 'exam_id', 'id');
     }
 
     /**
@@ -66,6 +68,6 @@ class Exam extends Model
      */
     public function participants()
     {
-        return $this->hasMany('App\Models\ExamParticipants', 'id');
+        return $this->hasMany('App\Models\ExamParticipants', 'exam_id', 'id');
     }
 }
