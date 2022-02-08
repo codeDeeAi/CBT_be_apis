@@ -2,39 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Exam\ExamParticipantRequest;
 use App\Models\Exam;
 use App\Models\ExamParticipantAnswer;
 use App\Models\ExamParticipants;
 use App\Models\ExamQuestion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ExamParticipantAnswerController extends Controller
 {
     // Submit answers
-    public function create(Request $request)
+    public function create(ExamParticipantRequest $request)
     {
         // Get exam token
         $exam_token = ($request->query('exam_token')) ? $request->query('exam_token') : '';
         $user_email = ($request->query('email')) ? $request->query('email') : '';
         $user_token = ($request->query('token')) ? $request->query('token') : '';
 
-        if (Exam::where('token', $exam_token)->doesntExist()) {
-            return response()->json([
-                'message' => 'Examination link is invalid, pls check link and try again !'
-            ], 404);
-        }
-
         // Get Exam
         $exam = Exam::where('token', $exam_token)->first();
-
-
-        // Check if user is an exam participant
-        if (ExamParticipants::where('exam_id', $exam->id)->where('email', $user_email)->where('token', $user_token)->doesntExist()) {
-            return response()->json([
-                'message' => 'Invalid credentials, pls try again/ contact examiner !'
-            ], 400);
-        }
 
         // Get Exam user
         $exam_participant = ExamParticipants::where('exam_id', $exam->id)->where('email', $user_email)->where('token', $user_token)->first();
@@ -82,33 +70,27 @@ class ExamParticipantAnswerController extends Controller
         }
     }
 
-    public function check_result(Request $request)
+    public function check_result(ExamParticipantRequest $request)
     {
         // Get exam token
         $exam_token = ($request->query('exam_token')) ? $request->query('exam_token') : '';
         $user_email = ($request->query('email')) ? $request->query('email') : '';
         $user_token = ($request->query('token')) ? $request->query('token') : '';
 
-        if (Exam::where('token', $exam_token)->doesntExist()) {
-            return response()->json([
-                'message' => 'Examination link is invalid, pls check link and try again !'
-            ], 404);
-        }
-
         // Get Exam
         $exam = Exam::where('token', $exam_token)->first();
-
-
-        // Check if user is an exam participant
-        if (ExamParticipants::where('exam_id', $exam->id)->where('email', $user_email)->where('token', $user_token)->doesntExist()) {
-            return response()->json([
-                'message' => 'Invalid credentials, pls try again/ contact examiner !'
-            ], 400);
-        }
 
         // Get Exam user
         $exam_participant = ExamParticipants::where('exam_id', $exam->id)->where('email', $user_email)->where('token', $user_token)->first();
 
+        // Use cache if exists
+        if (Cache::has('exam_result.' . $exam_token . '.' . $user_token)) {
+            $cache_result = Cache::get('exam_result.' . $exam_token . '.' . $user_token);
+
+            return response()->json([
+                $cache_result
+            ], 200);
+        }
         // Calc score
         $results = $this->calc_score($exam->id, $exam_participant->id);
 
@@ -135,12 +117,16 @@ class ExamParticipantAnswerController extends Controller
                     );
                 }
             ])->get();
-
-        return response()->json([
+        $result_template = [
             'result' => $results,
             'exam_details' => $exam_det,
             'exam_participant' => $exam_participant,
             'exam_sheet' => $exam_sheet
+        ];
+        // Update cache
+        Cache::put('exam_result.' . $exam_token . '.' . $user_token, $result_template, 60 * 10);
+        return response()->json([
+            $result_template
         ], 200);
     }
 
